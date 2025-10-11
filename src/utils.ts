@@ -224,6 +224,26 @@ export async function getSortedPosts() {
   return sortedPosts
 }
 
+export async function getSortedEssays() {
+  const allEssays = await getCollection('essays', ({ data }) => {
+    return import.meta.env.PROD ? data.draft !== true : true
+  })
+  const sortedEssays = allEssays.sort((a, b) => {
+    return a.data.published < b.data.published ? -1 : 1
+  })
+  return sortedEssays
+}
+
+export async function getAllSortedContent() {
+  const posts = await getSortedPosts()
+  const essays = await getSortedEssays()
+  // Combine and sort by date
+  const allContent = [...posts, ...essays].sort((a, b) => {
+    return a.data.published < b.data.published ? -1 : 1
+  })
+  return allContent
+}
+
 abstract class PostsCollationGroup implements CollationGroup<'posts'> {
   title: string
   url: string
@@ -320,6 +340,97 @@ export class TagsGroup extends PostsCollationGroup {
   }
 }
 
+abstract class EssaysCollationGroup implements CollationGroup<'essays'> {
+  title: string
+  url: string
+  collations: Collation<'essays'>[]
+
+  constructor(title: string, url: string, collations: Collation<'essays'>[]) {
+    this.title = title
+    this.url = url
+    this.collations = collations
+  }
+
+  sortCollationsAlpha(): Collation<'essays'>[] {
+    this.collations.sort((a, b) => a.title.localeCompare(b.title))
+    return this.collations
+  }
+
+  sortCollationsLargest(): Collation<'essays'>[] {
+    this.collations.sort((a, b) => b.entries.length - a.entries.length)
+    return this.collations
+  }
+
+  sortCollationsMostRecent(): Collation<'essays'>[] {
+    this.collations.sort((a, b) => {
+      const aDate = a.entries[a.entries.length - 1].data.published
+      const bDate = b.entries[b.entries.length - 1].data.published
+      return aDate < bDate ? 1 : -1
+    })
+    return this.collations
+  }
+
+  add(item: CollectionEntry<'essays'>, collationTitle: string): void {
+    const collationTitleSlug = slug(collationTitle.trim())
+    const existing = this.collations.find((i) => i.titleSlug === collationTitleSlug)
+    if (existing) {
+      const alreadyHasThisPost = existing.entries.find((e) => e.id === item.id)
+      if (!alreadyHasThisPost) {
+        existing.entries.push(item)
+      }
+    } else {
+      this.collations.push({
+        title: collationTitle,
+        titleSlug: collationTitleSlug,
+        url: `${this.url}/${encodeURIComponent(collationTitleSlug)}`,
+        entries: [item],
+      })
+    }
+  }
+
+  match(rawKey: string): Collation<'essays'> | undefined {
+    return this.collations.find((entry) => entry.title === rawKey)
+  }
+
+  matchMany(rawKeys: string[]): Collation<'essays'>[] {
+    return this.collations.filter((entry) => rawKeys.includes(entry.title))
+  }
+}
+
+export class EssaysSeriesGroup extends EssaysCollationGroup {
+  private constructor(title: string, url: string, items: Collation<'essays'>[]) {
+    super(title, url, items)
+  }
+  static async build(essays?: CollectionEntry<'essays'>[]): Promise<EssaysSeriesGroup> {
+    const sortedEssays = essays || (await getSortedEssays())
+    const seriesGroup = new EssaysSeriesGroup('Series', '/series', [])
+    sortedEssays.forEach((essay) => {
+      const frontmatterSeries = essay.data.series
+      if (frontmatterSeries) {
+        seriesGroup.add(essay, frontmatterSeries)
+      }
+    })
+    return seriesGroup
+  }
+}
+
+export class EssaysTagsGroup extends EssaysCollationGroup {
+  private constructor(title: string, url: string, items: Collation<'essays'>[]) {
+    super(title, url, items)
+  }
+  static async build(essays?: CollectionEntry<'essays'>[]): Promise<EssaysTagsGroup> {
+    const sortedEssays = essays || (await getSortedEssays())
+    const tagsGroup = new EssaysTagsGroup('Tags', '/tags', [])
+    sortedEssays.forEach((essay) => {
+      const frontmatterTags = essay.data.tags || []
+      frontmatterTags.forEach((tag) => {
+        tagsGroup.add(essay, tag)
+      })
+    })
+    return tagsGroup
+  }
+}
+
 export function getPostSequenceContext(
   post: CollectionEntry<'posts'>,
   posts: CollectionEntry<'posts'>[],
@@ -327,5 +438,15 @@ export function getPostSequenceContext(
   const index = posts.findIndex((p) => p.id === post.id)
   const prev = index > 0 ? posts[index - 1] : undefined
   const next = index < posts.length - 1 ? posts[index + 1] : undefined
+  return { index, prev, next }
+}
+
+export function getEssaySequenceContext(
+  essay: CollectionEntry<'essays'>,
+  essays: CollectionEntry<'essays'>[],
+) {
+  const index = essays.findIndex((e) => e.id === essay.id)
+  const prev = index > 0 ? essays[index - 1] : undefined
+  const next = index < essays.length - 1 ? essays[index + 1] : undefined
   return { index, prev, next }
 }

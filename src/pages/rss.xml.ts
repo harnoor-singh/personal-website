@@ -1,7 +1,7 @@
 import rss from '@astrojs/rss'
 import siteConfig from '~/site.config'
 import type { AstroGlobal } from 'astro'
-import { getSortedPosts } from '~/utils'
+import { getAllSortedContent } from '~/utils'
 import sanitizeHtml from 'sanitize-html'
 import MarkdownIt from 'markdown-it'
 const parser = new MarkdownIt()
@@ -14,22 +14,28 @@ export async function GET(_context: AstroGlobal) {
     )
     return
   }
-  const posts = await getSortedPosts()
+  const allContent = await getAllSortedContent()
   return rss({
     stylesheet: '/rss.xsl',
     title: siteConfig.title,
     description: siteConfig.description,
     site: siteConfig.site,
-    items: posts.map((post) => ({
-      title: post.data.title,
-      pubDate: post.data.published,
-      description: post.data.description,
-      author: post.data.author || siteConfig.author,
-      link: `/posts/${post.id}`,
-      content: sanitizeHtml(parser.render(post.body || ''), {
-        allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img']),
-      }),
-    })),
+    items: allContent.map((item) => {
+      // Determine if it's an essay or post based on the collection
+      const isEssay = 'collection' in item && item.collection === 'essays'
+      const basePath = isEssay ? '/essays/' : '/posts/'
+      
+      return {
+        title: item.data.title,
+        pubDate: item.data.published,
+        description: item.data.description,
+        author: item.data.author || siteConfig.author,
+        link: `${basePath}${item.id}`,
+        content: sanitizeHtml(parser.render(item.body || ''), {
+          allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img']),
+        }),
+      }
+    }),
     trailingSlash: false,
   })
 }

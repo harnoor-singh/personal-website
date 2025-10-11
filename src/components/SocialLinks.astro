@@ -5,6 +5,9 @@ import IconMastodon from '~/icons/mastodon.svg'
 import IconTwitter from '~/icons/twitter.svg'
 import IconLinkedin from '~/icons/linkedin.svg'
 import IconBluesky from '~/icons/bluesky.svg'
+import IconMedium from '~/icons/medium.svg'
+import IconSubstack from '~/icons/substack.svg'
+import IconYoutube from '~/icons/youtube.svg'
 import IconEmail from '~/icons/email.svg'
 import IconRss from '~/icons/rss.svg'
 
@@ -78,6 +81,45 @@ const { socialLinks } = Astro.props
       >
         <span class="sr-only">Bluesky</span>
         <IconBluesky class="size-7" />
+      </a>
+    )
+  }
+  {
+    socialLinks.medium && (
+      <a
+        href={socialLinks.medium}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="social-link"
+      >
+        <span class="sr-only">Medium</span>
+        <IconMedium class="size-7" />
+      </a>
+    )
+  }
+  {
+    socialLinks.substack && (
+      <a
+        href={socialLinks.substack}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="social-link"
+      >
+        <span class="sr-only">Substack</span>
+        <IconSubstack class="size-7" />
+      </a>
+    )
+  }
+  {
+    socialLinks.youtube && (
+      <a
+        href={socialLinks.youtube}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="social-link"
+      >
+        <span class="sr-only">YouTube</span>
+        <IconYoutube class="size-7" />
       </a>
     )
   }

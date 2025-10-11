@@ -85,7 +85,7 @@ export async function GET(context: APIContext) {
     const png = new Resvg(svg).render().asPng()
     console.log(`  - PNG generated for: ${title}`)
     
-    return new Response(png, {
+    return new Response(new Uint8Array(png), {
       headers: {
         'Cache-Control': 'public, max-age=31536000, immutable',
         'Content-Type': 'image/png',

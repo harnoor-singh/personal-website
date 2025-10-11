@@ -1,15 +1,42 @@
 ---
 import type { GetStaticPaths } from 'astro'
 import Layout from '~/layouts/Layout.astro'
-import { SeriesGroup } from '~/utils'
+import { SeriesGroup, EssaysSeriesGroup, getAllSortedContent } from '~/utils'
 import PageHeader from '~/components/PageHeader.astro'
 import PostPreview from '~/components/PostPreview.astro'
 
 export const getStaticPaths = (async () => {
-  const seriesGroup = await SeriesGroup.build()
-  return seriesGroup.collations.map((series) => {
+  const postsSeriesGroup = await SeriesGroup.build()
+  const essaysSeriesGroup = await EssaysSeriesGroup.build()
+  
+  // Combine both series groups
+  const allSeries = [
+    ...postsSeriesGroup.collations.map((series) => ({
+      slug: series.titleSlug,
+      title: series.title,
+      entries: series.entries,
+    })),
+    ...essaysSeriesGroup.collations.map((series) => ({
+      slug: series.titleSlug,
+      title: series.title,
+      entries: series.entries,
+    })),
+  ]
+  
+  // Group by slug to merge posts and essays in the same series
+  const mergedSeries = new Map()
+  for (const series of allSeries) {
+    if (mergedSeries.has(series.slug)) {
+      const existing = mergedSeries.get(series.slug)
+      existing.entries = [...existing.entries, ...series.entries]
+    } else {
+      mergedSeries.set(series.slug, series)
+    }
+  }
+  
+  return Array.from(mergedSeries.values()).map((series) => {
     return {
-      params: { slug: series.titleSlug },
+      params: { slug: series.slug },
       props: { posts: series.entries, seriesTitle: series.title },
     }
   })

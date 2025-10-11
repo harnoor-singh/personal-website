@@ -45,17 +45,31 @@ async function fetchData(
       }
     }
   }
-  const apiUrl = 'https://github-contributions-api.jogruber.de/v4/'
-  const response = await fetch(`${apiUrl}${username}?y=${String(year)}`)
-  const data = (await response.json()) as GitHubActivityApiResponse
-  if (!response.ok) {
-    const message = data.error || 'Unknown error'
-    throw Error(`Fetching GitHub contribution data for "${username}" failed: ${message}`)
+  
+  try {
+    const apiUrl = 'https://github-contributions-api.jogruber.de/v4/'
+    const response = await fetch(`${apiUrl}${username}?y=${String(year)}`, {
+      signal: AbortSignal.timeout(5000) // 5 second timeout
+    })
+    
+    if (!response.ok) {
+      console.warn(`Failed to fetch GitHub activity for ${username}: HTTP ${response.status}`)
+      return { total: {}, contributions: [], error: `HTTP ${response.status}` }
+    }
+    
+    const data = (await response.json()) as GitHubActivityApiResponse
+    
+    if (data.error) {
+      console.warn(`GitHub API error for "${username}": ${data.error}`)
+      return { total: {}, contributions: [], error: data.error }
+    }
+
+    validateActivities(data.contributions)
+    return data
+  } catch (error) {
+    console.warn(`Failed to fetch GitHub activity for ${username}:`, error)
+    return { total: {}, contributions: [], error: String(error) }
   }
-
-  validateActivities(data.contributions)
-
-  return data
 }
 
 function calcColorScale([start, end]: [string, string], steps: number): Array<string> {

@@ -3,7 +3,7 @@ import { Resvg } from '@resvg/resvg-js'
 import type { APIContext, InferGetStaticPropsType } from 'astro'
 import satori, { type SatoriOptions } from 'satori'
 import { html } from 'satori-html'
-import { dateString, getSortedPosts, resolveThemeColorStyles } from '~/utils'
+import { dateString, getSortedPosts, getSortedEssays, resolveThemeColorStyles } from '~/utils'
 import path from 'path'
 import fs from 'fs'
 import type { ReactNode } from 'react'
@@ -57,49 +57,68 @@ const ogOptions: SatoriOptions = {
   width: 1200,
 }
 
-const markup = (title: string, pubDate: string | undefined, author: string) =>
-  html(`<div tw="flex flex-col max-w-full justify-center h-full bg-[${bg}] text-[${fg}] p-12">
+const markup = (title: string, pubDate: string | undefined, author: string) => {
+  // Simplify the title to avoid potential issues
+  const safeTitle = title.replace(/[^\w\s-]/g, '').slice(0, 100)
+  
+  return html(`<div tw="flex flex-col max-w-full justify-center h-full bg-[${bg}] text-[${fg}] p-12">
     <div style="border-width: 12px; border-radius: 80px;" tw="flex items-center max-w-full p-8 border-[${accent}]/30">
-      ${
-        avatarBase64
-          ? `<div tw="flex flex-col justify-center items-center w-1/3 h-100">
-            <img src="${avatarBase64}" tw="flex w-full rounded-full border-[${accent}]/30" />
-        </div>`
-          : ''
-      }
       <div tw="flex flex-1 flex-col max-w-full justify-center items-center">
         ${pubDate ? `<p tw="text-3xl max-w-full text-[${accent}]">${pubDate}</p>` : ''}
-        <h1 tw="text-6xl my-14 text-center leading-snug">${title}</h1>
-        ${author !== title ? `<p tw="text-4xl text-[${accent}]">${author}</p>` : ''}
+        <h1 tw="text-6xl my-14 text-center leading-snug">${safeTitle}</h1>
+        ${author !== safeTitle ? `<p tw="text-4xl text-[${accent}]">${author}</p>` : ''}
       </div>
     </div>
   </div>`)
+}
 
 type Props = InferGetStaticPropsType<typeof getStaticPaths>
 
 export async function GET(context: APIContext) {
-  const { pubDate, title, author } = context.props as Props
-  const svg = await satori(markup(title, pubDate, author) as ReactNode, ogOptions)
-  const png = new Resvg(svg).render().asPng()
-  return new Response(png, {
-    headers: {
-      'Cache-Control': 'public, max-age=31536000, immutable',
-      'Content-Type': 'image/png',
-    },
-  })
+  try {
+    const { pubDate, title, author } = context.props as Props
+    console.log(`Generating social card for: ${title}`)
+    
+    const svg = await satori(markup(title, pubDate, author) as ReactNode, ogOptions)
+    console.log(`  - SVG generated for: ${title}`)
+    
+    const png = new Resvg(svg).render().asPng()
+    console.log(`  - PNG generated for: ${title}`)
+    
+    return new Response(png, {
+      headers: {
+        'Cache-Control': 'public, max-age=31536000, immutable',
+        'Content-Type': 'image/png',
+      },
+    })
+  } catch (error) {
+    console.error(`Error generating social card:`, error)
+    // Return a simple error response
+    return new Response('Error generating image', { status: 500 })
+  }
 }
 
 export async function getStaticPaths() {
   const posts = await getSortedPosts()
-  return posts
-    .map((post) => ({
-      params: { slug: post.id },
-      props: {
-        pubDate: post.data.published ? dateString(post.data.published) : undefined,
-        title: post.data.title,
-        author: post.data.author || siteConfig.author,
-      },
-    }))
+  const essays = await getSortedEssays()
+  
+  // Combine posts and essays
+  const allContent = [...posts, ...essays]
+  
+  console.log(`Generating social cards for ${allContent.length} items`)
+  
+  return allContent
+    .map((item) => {
+      console.log(`  - ${item.id}`)
+      return {
+        params: { slug: item.id },
+        props: {
+          pubDate: item.data.published ? dateString(item.data.published) : undefined,
+          title: item.data.title,
+          author: item.data.author || siteConfig.author,
+        },
+      }
+    })
     .concat([
       {
         params: { slug: '__default' },

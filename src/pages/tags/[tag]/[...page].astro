@@ -1,7 +1,7 @@
 ---
 import type { GetStaticPaths } from 'astro'
 import Layout from '~/layouts/Layout.astro'
-import { TagsGroup } from '~/utils'
+import { TagsGroup, EssaysTagsGroup } from '~/utils'
 import Pagination from '~/components/Pagination.astro'
 import siteConfig from '~/site.config'
 import PostPreview from '~/components/PostPreview.astro'
@@ -9,12 +9,39 @@ import PageHeader from '~/components/PageHeader.astro'
 
 // Note: Pagination like '/', '/2', '/3' only works with spread param like [...page]
 export const getStaticPaths = (async ({ paginate }) => {
-  const tagsGroup = await TagsGroup.build()
-  const pages = tagsGroup.collations.flatMap((tags) => {
+  const postsTagsGroup = await TagsGroup.build()
+  const essaysTagsGroup = await EssaysTagsGroup.build()
+  
+  // Combine both tag groups
+  const allTags = [
+    ...postsTagsGroup.collations.map((tag) => ({
+      slug: tag.titleSlug,
+      title: tag.title,
+      entries: tag.entries,
+    })),
+    ...essaysTagsGroup.collations.map((tag) => ({
+      slug: tag.titleSlug,
+      title: tag.title,
+      entries: tag.entries,
+    })),
+  ]
+  
+  // Group by slug to merge posts and essays with the same tag
+  const mergedTags = new Map()
+  for (const tag of allTags) {
+    if (mergedTags.has(tag.slug)) {
+      const existing = mergedTags.get(tag.slug)
+      existing.entries = [...existing.entries, ...tag.entries]
+    } else {
+      mergedTags.set(tag.slug, tag)
+    }
+  }
+  
+  const pages = Array.from(mergedTags.values()).flatMap((tag) => {
     // Use flatMap to lift the posts for each tag into a single array
-    return paginate(tags.entries.reverse(), {
-      props: { tagTitle: tags.title },
-      params: { tag: tags.titleSlug },
+    return paginate(tag.entries.reverse(), {
+      props: { tagTitle: tag.title },
+      params: { tag: tag.slug },
       pageSize: siteConfig.pageSize,
     })
   })

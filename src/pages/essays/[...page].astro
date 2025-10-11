@@ -1,0 +1,31 @@
+---
+import type { GetStaticPaths } from 'astro'
+import Layout from '~/layouts/Layout.astro'
+import { getSortedEssays } from '~/utils'
+import Pagination from '~/components/Pagination.astro'
+import siteConfig from '~/site.config'
+import PostPreview from '~/components/PostPreview.astro'
+import PageHeader from '~/components/PageHeader.astro'
+
+// Note: Pagination like '/', '/2', '/3' only works with spread param like [...page]
+export const getStaticPaths = (async ({ paginate }) => {
+  const sortedEssays = await getSortedEssays()
+  return paginate(sortedEssays.reverse(), { pageSize: siteConfig.pageSize })
+}) satisfies GetStaticPaths
+
+const { page } = Astro.props
+const pageTitle = 'Essays' + (page.currentPage > 1 ? ` - Page ${page.currentPage}` : '')
+---
+
+<Layout title={pageTitle} description="All essays in the archive">
+  <div class="mt-2 sm:mt-0">
+    <PageHeader />
+    {page.data.map((essay) => <PostPreview post={essay} />)}
+    <Pagination
+      prevLink={page.url.prev ? page.url.prev : undefined}
+      prevText="Newer Essays"
+      nextLink={page.url.next ? page.url.next : undefined}
+      nextText="Older Essays"
+    />
+  </div>
+</Layout>

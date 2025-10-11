@@ -1,6 +1,6 @@
 ---
 import Layout from '~/layouts/Layout.astro'
-import { getSortedPosts } from '~/utils'
+import { getSortedPosts, getSortedEssays, getAllSortedContent } from '~/utils'
 import { getCollection, render } from 'astro:content'
 import PostPreview from '~/components/PostPreview.astro'
 import Pagination from '~/components/Pagination.astro'
@@ -22,11 +22,18 @@ if (home.length > 0) {
   homeGithubCalendar = homeEntry.data.githubCalendar
 }
 const sortedPosts = await getSortedPosts()
+const sortedEssays = await getSortedEssays()
+const allSortedContent = await getAllSortedContent()
+
 const postsHaveTags = sortedPosts.some(
-  (post) => post.data.tags && post.data.tags.length > 0,
+  (post: any) => post.data.tags && post.data.tags.length > 0,
+)
+const essaysHaveTags = sortedEssays.some(
+  (essay: any) => essay.data.tags && essay.data.tags.length > 0,
 )
 
-const postsHaveSeries = sortedPosts.some((post) => post.data.series)
+const postsHaveSeries = sortedPosts.some((post: any) => post.data.series)
+const essaysHaveSeries = sortedEssays.some((essay: any) => essay.data.series)
 ---
 
 <Layout>
@@ -38,7 +45,7 @@ const postsHaveSeries = sortedPosts.some((post) => post.data.series)
     )
   }
   {
-    postsHaveSeries && (
+    (postsHaveSeries || essaysHaveSeries) && (
       <section>
         <BlockHeader>Series</BlockHeader>
         <SeriesSection posts={sortedPosts} />
@@ -46,10 +53,24 @@ const postsHaveSeries = sortedPosts.some((post) => post.data.series)
     )
   }
   {
-    postsHaveTags && (
+    (postsHaveTags || essaysHaveTags) && (
       <section>
         <BlockHeader>Tags</BlockHeader>
         <TagsSection posts={sortedPosts} />
+      </section>
+    )
+  }
+  {
+    sortedEssays.length > 0 && (
+      <section>
+        <BlockHeader>Latest Essays</BlockHeader>
+        {sortedEssays
+          .reverse()
+          .slice(0, Math.floor(siteConfig.pageSize / 2))
+          .map((essay: any) => (
+            <PostPreview post={essay} />
+          ))}
+        <Pagination nextLink="/essays" nextText="All Essays" />
       </section>
     )
   }
@@ -60,10 +81,10 @@ const postsHaveSeries = sortedPosts.some((post) => post.data.series)
         {sortedPosts
           .reverse()
           .slice(0, Math.floor(siteConfig.pageSize / 2))
-          .map((post) => (
+          .map((post: any) => (
             <PostPreview post={post} />
           ))}
-        <Pagination nextLink="/posts" nextText="Archive" />
+        <Pagination nextLink="/posts" nextText="All Posts" />
       </section>
     )
   }

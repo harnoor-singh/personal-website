@@ -46,7 +46,7 @@ const config: SiteConfig = {
     },
     {
       name: 'Projects',
-      url: '/posts',
+      url: '/projects',
     },
     // {
     //   name: 'Resume',
@@ -55,7 +55,7 @@ const config: SiteConfig = {
     // },
     {
       name: 'Contact',
-      url: '/posts',
+      url: '/contact',
     },
 
     // {
@@ -186,13 +186,13 @@ const config: SiteConfig = {
   // Take the values from the generated script tag at https://giscus.app and fill them in here.
   // IMPORTANT: Update giscus.json in the root of the project with your own website URL
   // If you don't want to use Giscus, set this to undefined.
-  giscus: {
-    repo: 'stelcodes/multiterm-astro',
-    repoId: 'R_kgDOPNnBig',
-    category: 'Giscus',
-    categoryId: 'DIC_kwDOPNnBis4CteOc',
-    reactionsEnabled: true, // Enable reactions on post itself
-  },
+  // giscus: {
+  //   repo: 'stelcodes/multiterm-astro',
+  //   repoId: 'R_kgDOPNnBig',
+  //   category: 'Giscus',
+  //   categoryId: 'DIC_kwDOPNnBis4CteOc',
+  //   reactionsEnabled: true, // Enable reactions on post itself
+  // },
   // These are characters available for the character chat feature.
   // To add your own character, add an image file to the top-level `/public` directory
   // Make sure to compress the image to a web-friendly size (<100kb)

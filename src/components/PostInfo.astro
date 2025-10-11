@@ -1,10 +1,10 @@
 ---
-import { dateString, SeriesGroup } from '~/utils'
+import { dateString, SeriesGroup, EssaysSeriesGroup } from '~/utils'
 import { render, type CollectionEntry } from 'astro:content'
 import type { Collation } from '~/types'
 
 interface Props {
-  post: CollectionEntry<'posts'>
+  post: CollectionEntry<'posts'> | CollectionEntry<'essays'>
   class?: string
 }
 
@@ -12,12 +12,21 @@ const { post, class: className } = Astro.props
 const { remarkPluginFrontmatter } = await render(post)
 const { minutesRead } = remarkPluginFrontmatter
 const seriesFrontmatter = post.data.series
-let series: Collation<'posts'> | undefined
+
+// Determine if this is an essay or post
+const isEssay = 'collection' in post && post.collection === 'essays'
+
+let series: Collation<'posts'> | Collation<'essays'> | undefined
 let seriesPostNumber: number | undefined
 let seriesTotal: number | undefined
 if (seriesFrontmatter) {
-  const seriesGroup = await SeriesGroup.build()
-  series = seriesGroup.match(seriesFrontmatter)
+  if (isEssay) {
+    const seriesGroup = await EssaysSeriesGroup.build()
+    series = seriesGroup.match(seriesFrontmatter)
+  } else {
+    const seriesGroup = await SeriesGroup.build()
+    series = seriesGroup.match(seriesFrontmatter)
+  }
   if (!series) {
     // This should never happen if the series data is correct
     throw new Error(`Series "${seriesFrontmatter}" not found`)

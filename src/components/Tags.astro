@@ -2,7 +2,7 @@
 import type { Collation } from '~/types'
 
 interface Props {
-  tags: Collation<'posts'>[]
+  tags: Collation<'posts'>[] | Collation<'essays'>[]
 }
 
 const { tags } = Astro.props

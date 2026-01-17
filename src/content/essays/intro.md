@@ -1,7 +1,7 @@
 ---
 title: "Why I am starting a blog and My thoughts on writing"
 published: 2026-01-02
-draft: false
+draft: true
 description: ""
 author: "Harnoor Singh"
 tags: ["Essay", "Writing"]
